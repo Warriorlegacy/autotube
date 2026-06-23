@@ -69,6 +69,7 @@ def generate_script(
     style: str = "educational",
     target_minutes: int = 5,
     provider: str = "gemini",
+    fallback_providers: list[str] | None = None,
 ) -> VideoScript:
     prompt = SCRIPT_PROMPT_TEMPLATE.format(
         style=style,
@@ -77,10 +78,22 @@ def generate_script(
         target_minutes=target_minutes,
     )
 
-    if provider == "gemini":
-        script_data = _call_gemini(prompt)
+    providers_to_try = [provider] + (fallback_providers or ["groq"])
+    last_error = None
+    for p in providers_to_try:
+        try:
+            if p == "gemini":
+                script_data = _call_gemini(prompt)
+            else:
+                script_data = _call_groq(prompt)
+            break
+        except Exception as e:
+            last_error = e
+            continue
     else:
-        script_data = _call_groq(prompt)
+        raise RuntimeError(
+            f"All AI providers failed. Last error: {last_error}"
+        ) from last_error
 
     sections = [
         ScriptSection(

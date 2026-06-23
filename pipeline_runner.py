@@ -62,6 +62,8 @@ def run_pipeline(topic: TopicItem, config: dict) -> dict:
                 topic,
                 style=config["content"]["script_style"],
                 target_minutes=config["pipeline"]["target_video_duration_minutes"],
+                provider=config["ai"]["primary_provider"],
+                fallback_providers=config["ai"].get("fallback_providers"),
             ),
             max_retries=config["pipeline"]["max_retries"],
             base_delay=config["pipeline"]["retry_delay_base_seconds"],
