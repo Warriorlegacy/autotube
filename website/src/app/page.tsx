@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import SmoothScroll from "@/components/SmoothScroll";
 import Navbar from "@/components/Navbar";
 import ScrollProgress from "@/components/ScrollProgress";
@@ -10,21 +11,29 @@ import ProductProof from "@/components/ProductProof";
 import ComplianceTrust from "@/components/ComplianceTrust";
 import ZeroCostScale from "@/components/ZeroCostScale";
 import CTA from "@/components/CTA";
+import WaitlistModal from "@/components/WaitlistModal";
 
 export default function Home() {
+  const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
+
+  const openWaitlist = () => setIsWaitlistOpen(true);
+  const closeWaitlist = () => setIsWaitlistOpen(false);
+
   return (
     <SmoothScroll>
-      <Navbar />
+      <Navbar onOpenWaitlist={openWaitlist} />
       <ScrollProgress />
       <main>
-        <Hero />
+        <Hero onOpenWaitlist={openWaitlist} />
         <PipelineSection />
         <WhyItWins />
         <ProductProof />
         <ComplianceTrust />
         <ZeroCostScale />
-        <CTA />
+        <CTA onOpenWaitlist={openWaitlist} />
       </main>
+
+      <WaitlistModal isOpen={isWaitlistOpen} onClose={closeWaitlist} />
 
       <footer className="relative border-t border-white/5 py-8">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">

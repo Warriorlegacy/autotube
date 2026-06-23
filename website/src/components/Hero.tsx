@@ -16,7 +16,11 @@ const floatingMetrics: {
   { label: "QA Checks", value: "14", suffix: "" },
 ];
 
-export default function Hero() {
+interface HeroProps {
+  onOpenWaitlist: () => void;
+}
+
+export default function Hero({ onOpenWaitlist }: HeroProps) {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       <PipelineScene />
@@ -64,15 +68,15 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.45, ease: [0.25, 0.1, 0.25, 1] }}
           className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
         >
-          <a
-            href="#cta"
+          <button
+            onClick={onOpenWaitlist}
             className="group relative px-8 py-3.5 rounded-full bg-gradient-to-r from-accent-teal to-accent-cyan text-black font-semibold text-sm transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(45,212,191,0.3)]"
           >
             Build Your Channel
             <span className="ml-2 group-hover:translate-x-1 inline-block transition-transform">
               →
             </span>
-          </a>
+          </button>
           <a
             href="#pipeline"
             className="px-8 py-3.5 rounded-full border border-white/10 text-white/70 text-sm hover:bg-white/5 hover:text-white/90 transition-all duration-300"

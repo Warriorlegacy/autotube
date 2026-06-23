@@ -10,7 +10,11 @@ const navLinks = [
   { label: "Pricing", href: "#scale" },
 ];
 
-export default function Navbar() {
+interface NavbarProps {
+  onOpenWaitlist: () => void;
+}
+
+export default function Navbar({ onOpenWaitlist }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -48,12 +52,12 @@ export default function Navbar() {
               {link.label}
             </a>
           ))}
-          <a
-            href="#cta"
+          <button
+            onClick={onOpenWaitlist}
             className="text-sm px-5 py-2 rounded-full bg-white/10 hover:bg-white/15 border border-white/10 text-white/90 transition-all duration-300 hover:scale-105"
           >
             Get Started
-          </a>
+          </button>
         </div>
 
         <button
@@ -98,13 +102,15 @@ export default function Navbar() {
                   {link.label}
                 </a>
               ))}
-              <a
-                href="#cta"
-                onClick={() => setMobileOpen(false)}
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  onOpenWaitlist();
+                }}
                 className="px-4 py-3 rounded-xl text-sm text-center bg-white/10 hover:bg-white/15 text-white/90 transition-all mt-2"
               >
                 Get Started
-              </a>
+              </button>
             </div>
           </motion.div>
         )}

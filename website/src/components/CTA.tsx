@@ -2,7 +2,11 @@
 
 import { motion } from "framer-motion";
 
-export default function CTA() {
+interface CTAProps {
+  onOpenWaitlist: () => void;
+}
+
+export default function CTA({ onOpenWaitlist }: CTAProps) {
   return (
     <section id="cta" className="relative py-40 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-surface via-surface-light/20 to-surface pointer-events-none" />
@@ -32,8 +36,8 @@ export default function CTA() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <motion.a
-              href="#"
+            <motion.button
+              onClick={onOpenWaitlist}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}
               className="group relative px-10 py-4 rounded-full bg-gradient-to-r from-accent-teal to-accent-cyan text-black font-semibold text-sm transition-all duration-300 hover:shadow-[0_0_60px_rgba(45,212,191,0.3)]"
@@ -42,9 +46,9 @@ export default function CTA() {
               <span className="ml-2 group-hover:translate-x-1 inline-block transition-transform">
                 →
               </span>
-            </motion.a>
+            </motion.button>
             <motion.a
-              href="#"
+              href="#pipeline"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}
               className="px-10 py-4 rounded-full border border-white/10 text-white/70 text-sm hover:bg-white/5 hover:text-white/90 transition-all duration-300"
