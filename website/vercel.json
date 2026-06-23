@@ -3,6 +3,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "installCommand": "npm install --legacy-peer-deps",
+  "rootDirectory": "website",
   "git": {
     "deploymentEnabled": {
       "main": true,
