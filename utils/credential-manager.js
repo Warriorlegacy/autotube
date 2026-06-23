@@ -158,6 +158,10 @@ class CredentialManager {
   async setupOpenAICredentials() {
     console.log(chalk.cyan('\n🤖 OpenAI API Setup'));
     console.log(chalk.gray('Get your API key from: https://platform.openai.com/api-keys'));
+    console.log(chalk.yellow('Note: OpenAI requires paid credits. Consider using free alternatives:'));
+    console.log(chalk.gray('  - Groq (free): llama-3.3-70b'));
+    console.log(chalk.gray('  - Cerebras (free): llama-3.3-70b'));
+    console.log(chalk.gray('  - Gemini (free): gemini-2.0-flash'));
     
     const answers = await inquirer.prompt([
       {
@@ -171,11 +175,11 @@ class CredentialManager {
         name: 'model',
         message: 'Select your preferred model:',
         choices: [
-          'gpt-5.5',
-          'gpt-5.5-instant',
-          'gpt-5.4'
+          'gpt-4o-mini',
+          'gpt-4o',
+          'gpt-4-turbo'
         ],
-        default: 'gpt-5.5'
+        default: 'gpt-4o-mini'
       }
     ]);
 
@@ -192,6 +196,7 @@ class CredentialManager {
   async setupGeminiCredentials() {
     console.log(chalk.cyan('\n💎 Google Gemini API Setup'));
     console.log(chalk.gray('Get your API key from: https://aistudio.google.com/apikey'));
+    console.log(chalk.green('Free tier: gemini-2.0-flash (generous limits)'));
 
     const answers = await inquirer.prompt([
       {
@@ -203,12 +208,13 @@ class CredentialManager {
       {
         type: 'list',
         name: 'model',
-        message: 'Select your preferred Gemini model:',
+        message: 'Select your preferred Gemini model (free tier):',
         choices: [
-          'gemini-3.5-flash',
-          'gemini-3.5-pro'
+          'gemini-2.0-flash',
+          'gemini-2.5-flash',
+          'gemini-1.5-flash'
         ],
-        default: 'gemini-3.5-flash'
+        default: 'gemini-2.0-flash'
       }
     ]);
 
@@ -225,7 +231,8 @@ class CredentialManager {
   async setupOpenRouterCredentials() {
     console.log(chalk.cyan('\nOpenRouter Setup'));
     console.log(chalk.gray('Get your API key from: https://openrouter.ai/keys'));
-    console.log(chalk.gray('One key gives access to 300+ models (OpenAI, Claude, Gemini, Kimi, GLM, etc.)'));
+    console.log(chalk.green('Free models available: gemini-2.0-flash-exp:free, llama-3.3-70b:free'));
+    console.log(chalk.gray('One key gives access to 300+ models'));
 
     const answers = await inquirer.prompt([
       {
@@ -237,15 +244,13 @@ class CredentialManager {
       {
         type: 'list',
         name: 'model',
-        message: 'Select default model:',
+        message: 'Select free model:',
         choices: [
-          'openai/gpt-5.5',
-          'anthropic/claude-opus-4-8',
-          'google/gemini-3.5-flash',
-          'moonshotai/kimi-k2.6',
-          'zhipu/glm-5'
+          'google/gemini-2.0-flash-exp:free',
+          'meta-llama/llama-3.3-70b-instruct:free',
+          'qwen/qwen-2.5-72b-instruct:free'
         ],
-        default: 'openai/gpt-5.5'
+        default: 'google/gemini-2.0-flash-exp:free'
       }
     ]);
 
@@ -257,6 +262,70 @@ class CredentialManager {
 
     await this.saveCredentials();
     console.log(chalk.green('OpenRouter configured successfully!'));
+  }
+
+  // Groq Setup
+  async setupGroqCredentials() {
+    console.log(chalk.cyan('\n⚡ Groq Setup (Fastest Free Inference)'));
+    console.log(chalk.gray('Get your API key from: https://console.groq.com'));
+    console.log(chalk.green('Free tier: llama-3.3-70b-versatile'));
+
+    const answers = await inquirer.prompt([
+      {
+        type: 'password',
+        name: 'apiKey',
+        message: 'Enter your Groq API Key:',
+        validate: input => input.startsWith('gsk_') || 'Invalid Groq key format (starts with gsk_)'
+      },
+      {
+        type: 'list',
+        name: 'model',
+        message: 'Select model:',
+        choices: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'],
+        default: 'llama-3.3-70b-versatile'
+      }
+    ]);
+
+    this.credentials.aiProvider = {
+      provider: 'groq',
+      apiKey: answers.apiKey,
+      model: answers.model
+    };
+
+    await this.saveCredentials();
+    console.log(chalk.green('✅ Groq configured successfully!'));
+  }
+
+  // Cerebras Setup
+  async setupCerebrasCredentials() {
+    console.log(chalk.cyan('\n🚀 Cerebras Setup (Ultra-Fast Free Inference)'));
+    console.log(chalk.gray('Get your API key from: https://cloud.cerebras.ai'));
+    console.log(chalk.green('Free tier: llama-3.3-70b'));
+
+    const answers = await inquirer.prompt([
+      {
+        type: 'password',
+        name: 'apiKey',
+        message: 'Enter your Cerebras API Key:',
+        validate: input => input.startsWith('csk-') || 'Invalid Cerebras key format (starts with csk-)'
+      },
+      {
+        type: 'list',
+        name: 'model',
+        message: 'Select model:',
+        choices: ['llama-3.3-70b', 'llama-3.1-8b'],
+        default: 'llama-3.3-70b'
+      }
+    ]);
+
+    this.credentials.aiProvider = {
+      provider: 'cerebras',
+      apiKey: answers.apiKey,
+      model: answers.model
+    };
+
+    await this.saveCredentials();
+    console.log(chalk.green('✅ Cerebras configured successfully!'));
   }
 
   // Kimi (Moonshot AI) Setup
@@ -319,6 +388,159 @@ class CredentialManager {
 
     await this.saveCredentials();
     console.log(chalk.green('MiMo credentials configured successfully!'));
+  }
+
+  // Mistral AI Setup
+  async setupMistralCredentials() {
+    console.log(chalk.cyan('\n🌀 Mistral AI Setup'));
+    console.log(chalk.gray('Get your API key from: https://console.mistral.ai'));
+    console.log(chalk.green('Free tier: mistral-small-latest'));
+
+    const answers = await inquirer.prompt([
+      {
+        type: 'password',
+        name: 'apiKey',
+        message: 'Enter your Mistral API Key:',
+        validate: input => input.length > 0 || 'API key is required'
+      },
+      {
+        type: 'list',
+        name: 'model',
+        message: 'Select model (free tier):',
+        choices: ['mistral-small-latest', 'open-mistral-nemo'],
+        default: 'mistral-small-latest'
+      }
+    ]);
+
+    this.credentials.aiProvider = {
+      provider: 'mistral',
+      apiKey: answers.apiKey,
+      model: answers.model
+    };
+
+    await this.saveCredentials();
+    console.log(chalk.green('✅ Mistral configured successfully!'));
+  }
+
+  // xAI Setup
+  async setupXAICredentials() {
+    console.log(chalk.cyan('\n🤖 xAI (Grok) Setup'));
+    console.log(chalk.gray('Get your API key from: https://console.x.ai'));
+    console.log(chalk.green('Free tier: grok-3-mini'));
+
+    const answers = await inquirer.prompt([
+      {
+        type: 'password',
+        name: 'apiKey',
+        message: 'Enter your xAI API Key:',
+        validate: input => input.startsWith('xai-') || 'Invalid xAI key format (starts with xai-)'
+      },
+      {
+        type: 'list',
+        name: 'model',
+        message: 'Select model (free tier):',
+        choices: ['grok-3-mini'],
+        default: 'grok-3-mini'
+      }
+    ]);
+
+    this.credentials.aiProvider = {
+      provider: 'xai',
+      apiKey: answers.apiKey,
+      model: answers.model
+    };
+
+    await this.saveCredentials();
+    console.log(chalk.green('✅ xAI configured successfully!'));
+  }
+
+  // NVIDIA NIM Setup
+  async setupNVIDIACredentials() {
+    console.log(chalk.cyan('\n🔮 NVIDIA NIM Setup'));
+    console.log(chalk.gray('Get your API key from: https://build.nvidia.com'));
+    console.log(chalk.green('Free credits available'));
+
+    const answers = await inquirer.prompt([
+      {
+        type: 'password',
+        name: 'apiKey',
+        message: 'Enter your NVIDIA NIM API Key:',
+        validate: input => input.startsWith('nvapi-') || 'Invalid NVIDIA key format (starts with nvapi-)'
+      },
+      {
+        type: 'list',
+        name: 'model',
+        message: 'Select model:',
+        choices: ['meta/llama-3.3-70b-instruct', 'google/gemma-2-9b-it', 'meta/llama-3.1-8b-instruct'],
+        default: 'meta/llama-3.3-70b-instruct'
+      }
+    ]);
+
+    this.credentials.aiProvider = {
+      provider: 'nvidiaNim',
+      apiKey: answers.apiKey,
+      model: answers.model
+    };
+
+    await this.saveCredentials();
+    console.log(chalk.green('✅ NVIDIA NIM configured successfully!'));
+  }
+
+  // Cohere Setup
+  async setupCohereCredentials() {
+    console.log(chalk.cyan('\n📘 Cohere Setup'));
+    console.log(chalk.gray('Get your API key from: https://dashboard.cohere.com'));
+    console.log(chalk.green('Free tier: command-r'));
+
+    const answers = await inquirer.prompt([
+      {
+        type: 'password',
+        name: 'apiKey',
+        message: 'Enter your Cohere API Key:',
+        validate: input => input.startsWith('Dw') || 'Invalid Cohere key format'
+      },
+      {
+        type: 'list',
+        name: 'model',
+        message: 'Select model (free tier):',
+        choices: ['command-r', 'command-light'],
+        default: 'command-r'
+      }
+    ]);
+
+    this.credentials.aiProvider = {
+      provider: 'cohere',
+      apiKey: answers.apiKey,
+      model: answers.model
+    };
+
+    await this.saveCredentials();
+    console.log(chalk.green('✅ Cohere configured successfully!'));
+  }
+
+  // Ollama Setup
+  async setupOllamaCredentials() {
+    console.log(chalk.cyan('\n🏠 Ollama (Local) Setup'));
+    console.log(chalk.gray('Make sure Ollama is running locally on port 11434'));
+    console.log(chalk.green('Always free - runs on your machine'));
+
+    const answers = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'model',
+        message: 'Select model (must be installed via ollama pull):',
+        choices: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3'],
+        default: 'llama3.2'
+      }
+    ]);
+
+    this.credentials.aiProvider = {
+      provider: 'ollama',
+      model: answers.model
+    };
+
+    await this.saveCredentials();
+    console.log(chalk.green('✅ Ollama configured successfully!'));
   }
 
   // GLM (Zhipu AI) Setup
@@ -519,13 +741,23 @@ class CredentialManager {
       // Files might not exist yet
     }
 
-    const requiredCredentials = ['youtube', 'openai'];
     const missing = [];
 
-    for (const service of requiredCredentials) {
-      if (!this.credentials[service]) {
-        missing.push(service);
-      }
+    // YouTube is always required
+    if (!this.credentials.youtube) {
+      missing.push('youtube');
+    }
+
+    // AI provider: check aiProvider, openai, providers map, or env vars
+    const hasAI = this.credentials.aiProvider?.apiKey ||
+                  this.credentials.openai?.apiKey ||
+                  this.credentials.providers ||
+                  process.env.OPENROUTER_API_KEY ||
+                  process.env.GROQ_API_KEY ||
+                  process.env.OPENAI_API_KEY;
+
+    if (!hasAI) {
+      missing.push('ai-provider (openai, openrouter, groq, etc.)');
     }
 
     if (missing.length > 0) {
@@ -613,25 +845,33 @@ class CredentialManager {
       {
         type: 'list',
         name: 'service',
-        message: 'Select your preferred AI service:',
+        message: 'Select your preferred AI service (all free tier):',
         choices: [
-          { name: 'OpenAI (GPT-5.5)', value: 'openai' },
-          { name: 'Google Gemini (Gemini 3.5 — free tier)', value: 'gemini' },
-          { name: 'OpenRouter (300+ models, one API key)', value: 'openrouter' },
-          { name: 'Kimi (Moonshot AI — K2.6)', value: 'kimi' },
-          { name: 'MiMo (Xiaomi — V2.5 Pro)', value: 'mimo' },
-          { name: 'GLM (Zhipu AI — GLM-5)', value: 'glm' },
+          { name: '⚡ Groq (Fastest, free: llama-3.3-70b)', value: 'groq' },
+          { name: '🚀 Cerebras (Ultra-fast, free: llama-3.3-70b)', value: 'cerebras' },
+          { name: '💎 Google Gemini (free: gemini-2.0-flash)', value: 'gemini' },
+          { name: '🔮 NVIDIA NIM (free credits)', value: 'nvidiaNim' },
+          { name: '🌐 OpenRouter (free models: gemini, llama, qwen)', value: 'openrouter' },
+          { name: '🌀 Mistral AI (free tier)', value: 'mistral' },
+          { name: '🤖 xAI Grok (free: grok-3-mini)', value: 'xai' },
+          { name: '📘 Cohere (free tier)', value: 'cohere' },
+          { name: '🏠 Ollama (Local, always free)', value: 'ollama' },
+          { name: '💳 OpenAI (paid)', value: 'openai' }
         ]
       }
     ]);
 
     switch (service) {
-      case 'openai': return await this.setupOpenAICredentials();
+      case 'groq': return await this.setupGroqCredentials();
+      case 'cerebras': return await this.setupCerebrasCredentials();
       case 'gemini': return await this.setupGeminiCredentials();
       case 'openrouter': return await this.setupOpenRouterCredentials();
-      case 'kimi': return await this.setupKimiCredentials();
-      case 'mimo': return await this.setupMiMoCredentials();
-      case 'glm': return await this.setupGLMCredentials();
+      case 'mistral': return await this.setupMistralCredentials();
+      case 'xai': return await this.setupXAICredentials();
+      case 'nvidiaNim': return await this.setupNVIDIACredentials();
+      case 'cohere': return await this.setupCohereCredentials();
+      case 'ollama': return await this.setupOllamaCredentials();
+      case 'openai': return await this.setupOpenAICredentials();
     }
   }
 
@@ -685,6 +925,54 @@ class CredentialManager {
 
     await this.saveCredentials();
     console.log(chalk.green('✅ ElevenLabs credentials configured successfully!'));
+  }
+
+  // Video Generation Services Setup
+  async setupVideoProviders() {
+    console.log(chalk.cyan('\n🎬 Video Generation Services'));
+    console.log(chalk.gray('Configure API keys for AI video generation'));
+
+    const { provider } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'provider',
+        message: 'Select a video generation provider:',
+        choices: [
+          { name: 'Replicate (Wan 2.7, SVD)', value: 'replicate' },
+          { name: 'RunwayML (Gen-3/4)', value: 'runway' },
+          { name: 'Luma AI (Dream Machine)', value: 'luma' },
+          { name: 'Pika Labs', value: 'pika' },
+          { name: 'fal.ai', value: 'fal' },
+          { name: 'Skip', value: 'skip' }
+        ]
+      }
+    ]);
+
+    if (provider === 'skip') return;
+
+    const providers = {
+      replicate: { name: 'Replicate', placeholder: 'r8_...' },
+      runway: { name: 'RunwayML', placeholder: 'rw_...' },
+      luma: { name: 'Luma AI', placeholder: 'luma_...' },
+      pika: { name: 'Pika Labs', placeholder: 'pika_...' },
+      fal: { name: 'fal.ai', placeholder: 'fal_...' }
+    };
+
+    const info = providers[provider];
+    const answers = await inquirer.prompt([
+      {
+        type: 'password',
+        name: 'apiKey',
+        message: `Enter your ${info.name} API Key:`,
+        validate: input => input.length > 0 || 'API key is required'
+      }
+    ]);
+
+    if (!this.credentials.videoProviders) this.credentials.videoProviders = {};
+    this.credentials.videoProviders[provider] = { apiKey: answers.apiKey };
+
+    await this.saveCredentials();
+    console.log(chalk.green(`✅ ${info.name} configured successfully!`));
   }
 }
 

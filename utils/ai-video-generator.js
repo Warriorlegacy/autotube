@@ -15,8 +15,12 @@ class AIVideoGenerator {
     this.logger = new Logger('AIVideoGenerator');
     
     // Initialize AI services with graceful fallback
-    const openaiKey = credentials.openai?.apiKey || process.env.OPENAI_API_KEY;
-    const replicateKey = credentials.replicate?.apiKey || process.env.REPLICATE_API_KEY;
+    // Support both old (credentials.openai) and new (credentials.providers.openai) structures
+    const openaiKey = credentials.openai?.apiKey || credentials.providers?.openai?.apiKey || process.env.OPENAI_API_KEY;
+    const replicateKey = credentials.replicate?.apiKey || credentials.videoProviders?.replicate?.apiKey || process.env.REPLICATE_API_KEY;
+    const siliconflowKey = credentials.videoProviders?.siliconflow?.apiKey || process.env.SILICONFLOW_API_KEY;
+    const falKey = credentials.videoProviders?.fal?.apiKey || process.env.FAL_API_KEY;
+    const huggingfaceKey = credentials.videoProviders?.huggingface?.apiKey || process.env.HF_API_KEY;
     
     if (openaiKey) {
       this.openai = new OpenAI({ apiKey: openaiKey });
@@ -27,18 +31,40 @@ class AIVideoGenerator {
     
     if (replicateKey) {
       this.replicate = new Replicate({ auth: replicateKey });
-      this.logger.info('Replicate service initialized');
+      this.logger.info('Replicate service initialized (Wan 2.7)');
     } else {
-      this.logger.warn('Replicate API key not found - advanced video generation unavailable');
+      this.logger.warn('Replicate API key not found');
+    }
+    
+    // SiliconFlow (free credits, fast inference)
+    this.siliconflowKey = siliconflowKey;
+    if (siliconflowKey) {
+      this.logger.info('SiliconFlow service initialized (Wan 2.2)');
+    }
+    
+    // fal.ai
+    this.falKey = falKey;
+    if (falKey) {
+      this.logger.info('fal.ai service initialized');
+    }
+    
+    // Hugging Face Inference
+    this.huggingfaceKey = huggingfaceKey;
+    if (huggingfaceKey) {
+      this.logger.info('Hugging Face Inference initialized');
     }
     
     // ElevenLabs configuration
-    this.elevenLabsApiKey = credentials.elevenLabs?.apiKey || process.env.ELEVENLABS_API_KEY;
-    this.elevenLabsVoiceId = credentials.elevenLabs?.voiceId || process.env.ELEVENLABS_VOICE_ID;
+    this.elevenLabsApiKey = credentials.elevenLabs?.apiKey || credentials.ttsProviders?.elevenlabs?.apiKey || process.env.ELEVENLABS_API_KEY;
+    this.elevenLabsVoiceId = credentials.elevenLabs?.voiceId || credentials.ttsProviders?.elevenlabs?.voiceId || process.env.ELEVENLABS_VOICE_ID;
     
     // Azure Speech configuration
-    this.azureSpeechKey = credentials.azure?.speechKey || process.env.AZURE_SPEECH_KEY;
-    this.azureSpeechRegion = credentials.azure?.speechRegion || process.env.AZURE_SPEECH_REGION;
+    this.azureSpeechKey = credentials.azure?.speechKey || credentials.azureSpeech?.subscriptionKey || credentials.ttsProviders?.azure?.subscriptionKey || process.env.AZURE_SPEECH_KEY;
+    this.azureSpeechRegion = credentials.azure?.speechRegion || credentials.azureSpeech?.region || credentials.ttsProviders?.azure?.region || process.env.AZURE_SPEECH_REGION;
+    
+    // Additional video providers
+    this.videoProviders = credentials.videoProviders || {};
+    this.imageProviders = credentials.imageProviders || {};
   }
 
   async generateTTSAudio(text, outputPath) {
@@ -186,21 +212,34 @@ class AIVideoGenerator {
   async generateVideo(script, visualAssets, audioPath, outputPath) {
     this.logger.info('Generating video from assets...');
     
-    try {
-      // Try Replicate for video generation first
-      if (this.replicate && this.replicate.auth) {
-        return await this.generateReplicateVideo(script, visualAssets, audioPath, outputPath);
+    // Try providers in order of preference (free first)
+    const providers = [
+      { name: 'SiliconFlow', fn: () => this.generateSiliconFlowVideo(script, visualAssets, audioPath, outputPath) },
+      { name: 'Replicate', fn: () => this.generateReplicateVideo(script, visualAssets, audioPath, outputPath) },
+      { name: 'fal.ai', fn: () => this.generateFalVideo(script, visualAssets, audioPath, outputPath) },
+      { name: 'HuggingFace', fn: () => this.generateHuggingFaceVideo(script, visualAssets, audioPath, outputPath) },
+      { name: 'Slideshow', fn: () => this.generateSlideshowVideo(script, visualAssets, audioPath, outputPath) }
+    ];
+
+    for (const provider of providers) {
+      try {
+        this.logger.info(`Trying ${provider.name}...`);
+        return await provider.fn();
+      } catch (error) {
+        this.logger.warn(`${provider.name} failed: ${error.message}`);
+        continue;
       }
-      
-      // Fallback to simple slideshow with Playwright
-      return await this.generateSlideshowVideo(script, visualAssets, audioPath, outputPath);
-    } catch (error) {
-      this.logger.error('Video generation failed:', error);
-      return await this.simulateVideoGeneration(script, visualAssets, audioPath, outputPath);
     }
+    
+    // Final fallback
+    return await this.simulateVideoGeneration(script, visualAssets, audioPath, outputPath);
   }
 
   async generateReplicateVideo(script, visualAssets, audioPath, outputPath) {
+    if (!this.replicate || !this.replicate.auth) {
+      throw new Error('Replicate not configured');
+    }
+
     const output = await this.replicate.run(
       "wan-video/wan-2.7-i2v",
       {
@@ -220,6 +259,126 @@ class AIVideoGenerator {
       // Add audio track
       await this.addAudioToVideo(outputPath, audioPath, outputPath);
     }
+
+    return outputPath;
+  }
+
+  async generateSiliconFlowVideo(script, visualAssets, audioPath, outputPath) {
+    if (!this.siliconflowKey) {
+      throw new Error('SiliconFlow not configured');
+    }
+
+    const axios = require('axios');
+    
+    // SiliconFlow API - Wan 2.1 text-to-video
+    const response = await axios.post(
+      'https://api.siliconflow.cn/v1/video/submit',
+      {
+        model: 'Wan-AI/Wan2.1-T2V-A14B',
+        prompt: script.title || "smooth cinematic motion, high quality",
+        image_url: visualAssets[0] || undefined
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${this.siliconflowKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const taskId = response.data.task_id;
+    if (!taskId) {
+      throw new Error('No task ID returned from SiliconFlow');
+    }
+
+    // Poll for completion
+    let result = null;
+    for (let i = 0; i < 60; i++) {
+      await new Promise(r => setTimeout(r, 5000));
+      
+      const statusResponse = await axios.get(
+        `https://api.siliconflow.cn/v1/video/status/${taskId}`,
+        {
+          headers: { 'Authorization': `Bearer ${this.siliconflowKey}` }
+        }
+      );
+
+      if (statusResponse.data.status === 'succeeded') {
+        result = statusResponse.data.video_url;
+        break;
+      } else if (statusResponse.data.status === 'failed') {
+        throw new Error('SiliconFlow video generation failed');
+      }
+    }
+
+    if (result) {
+      await this.downloadVideo(result, outputPath);
+      await this.addAudioToVideo(outputPath, audioPath, outputPath);
+    }
+
+    return outputPath;
+  }
+
+  async generateFalVideo(script, visualAssets, audioPath, outputPath) {
+    if (!this.falKey) {
+      throw new Error('fal.ai not configured');
+    }
+
+    const axios = require('axios');
+    
+    // fal.ai API - Wan 2.1
+    const response = await axios.post(
+      'https://fal.run/fal-ai/wan/v2.1/t2v',
+      {
+        prompt: script.title || "smooth cinematic motion",
+        num_frames: 81,
+        fps: 24
+      },
+      {
+        headers: {
+          'Authorization': `Key ${this.falKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.data.video?.url) {
+      await this.downloadVideo(response.data.video.url, outputPath);
+      await this.addAudioToVideo(outputPath, audioPath, outputPath);
+    }
+
+    return outputPath;
+  }
+
+  async generateHuggingFaceVideo(script, visualAssets, audioPath, outputPath) {
+    if (!this.huggingfaceKey) {
+      throw new Error('Hugging Face not configured');
+    }
+
+    const axios = require('axios');
+    
+    // Hugging Face Inference API - Wan 2.1
+    const response = await axios.post(
+      'https://api-inference.huggingface.co/models/Wan-AI/Wan2.1-T2V-14B',
+      {
+        inputs: script.title || "smooth cinematic motion, high quality"
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${this.huggingfaceKey}`,
+          'Content-Type': 'application/json'
+        },
+        responseType: 'stream'
+      }
+    );
+
+    const writer = require('fs').createWriteStream(outputPath);
+    response.data.pipe(writer);
+
+    await new Promise((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    });
 
     return outputPath;
   }

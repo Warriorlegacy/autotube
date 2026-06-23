@@ -191,6 +191,7 @@
                 <button class="btn" onclick="generateContent()">🎬 Generate Content Now</button>
                 <button class="btn" onclick="viewAnalytics()">📊 View Analytics</button>
                 <button class="btn" onclick="viewSchedule()">📅 View Schedule</button>
+                <button class="btn" onclick="openSettings()">⚙️ Settings</button>
             </div>
         </div>
         
@@ -395,6 +396,10 @@
         
         function viewSchedule() {
             window.open('/schedule', '_blank');
+        }
+        
+        function openSettings() {
+            window.open('/settings.html', '_blank');
         }
         
         function refreshDashboard() {

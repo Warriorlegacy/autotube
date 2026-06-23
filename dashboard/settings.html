@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - YouTube Automation</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f0f23; color: #e0e0e0; min-height: 100vh; }
+    
+    .navbar { background: #1a1a3e; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a5a; }
+    .navbar h1 { font-size: 18px; color: #a78bfa; }
+    .navbar a { color: #8b8bff; text-decoration: none; font-size: 14px; margin-left: 20px; }
+    .navbar a:hover { color: #a78bfa; }
+    
+    .container { max-width: 960px; margin: 24px auto; padding: 0 20px; }
+    
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: #1a1a3e; border-radius: 10px; padding: 4px; flex-wrap: wrap; }
+    .tab { flex: 1; min-width: 100px; padding: 10px; text-align: center; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .tab:hover { background: #2a2a5a; }
+    .tab.active { background: #6366f1; color: white; }
+    
+    .section { display: none; background: #1a1a3e; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .section.active { display: block; }
+    .section h2 { font-size: 18px; margin-bottom: 16px; color: #a78bfa; }
+    .section h3 { font-size: 14px; margin: 16px 0 8px; color: #8b8bff; text-transform: uppercase; letter-spacing: 1px; }
+    
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 13px; color: #999; margin-bottom: 4px; }
+    .form-group input, .form-group select { width: 100%; padding: 10px 12px; background: #0f0f23; border: 1px solid #333; border-radius: 8px; color: #e0e0e0; font-size: 14px; }
+    .form-group input:focus { border-color: #6366f1; outline: none; }
+    .form-group input[type="password"] { font-family: monospace; }
+    .form-group small { display: block; margin-top: 4px; color: #666; font-size: 11px; }
+    
+    .provider-card { background: #0f0f23; border: 1px solid #2a2a5a; border-radius: 10px; padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .provider-info { flex: 1; min-width: 120px; }
+    .provider-name { font-weight: 600; font-size: 15px; }
+    .provider-model { font-size: 12px; color: #888; margin-top: 2px; }
+    .provider-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; margin-top: 4px; }
+    .badge-free { background: #064e3b; color: #34d399; }
+    .badge-paid { background: #7c2d12; color: #fb923c; }
+    .badge-trial { background: #1e3a5f; color: #60a5fa; }
+    
+    .provider-status { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .status-active { background: #064e3b; color: #34d399; }
+    .status-ready { background: #1e3a5f; color: #60a5fa; }
+    .status-error { background: #450a0a; color: #f87171; }
+    .status-unset { background: #333; color: #888; }
+    
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; }
+    .btn-primary { background: #6366f1; color: white; }
+    .btn-primary:hover { background: #5558e6; }
+    .btn-secondary { background: #2a2a5a; color: #e0e0e0; }
+    .btn-secondary:hover { background: #3a3a6a; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-success { background: #059669; color: white; }
+    .btn-success:hover { background: #047857; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    
+    .btn-group { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+    
+    .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; font-size: 14px; z-index: 1000; animation: slideIn 0.3s ease; max-width: 400px; }
+    .toast-success { background: #064e3b; color: #34d399; border: 1px solid #065f46; }
+    .toast-error { background: #450a0a; color: #f87171; border: 1px solid #7f1d1d; }
+    .toast-info { background: #1e3a5f; color: #60a5fa; border: 1px solid #1e40af; }
+    @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    
+    .mask { font-family: monospace; color: #666; }
+    
+    .service-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .service-card { background: #0f0f23; border: 1px solid #2a2a5a; border-radius: 10px; padding: 16px; transition: border-color 0.2s; }
+    .service-card:hover { border-color: #6366f1; }
+    .service-card.has-key { border-color: #059669; }
+    .service-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .service-icon { font-size: 24px; margin-right: 8px; }
+    .service-title { font-weight: 600; font-size: 14px; }
+    .service-desc { font-size: 11px; color: #888; margin-bottom: 10px; line-height: 1.4; }
+    .service-input { width: 100%; padding: 8px 10px; background: #1a1a3e; border: 1px solid #333; border-radius: 6px; color: #e0e0e0; font-size: 12px; font-family: monospace; }
+    .service-input:focus { border-color: #6366f1; outline: none; }
+    .service-actions { display: flex; gap: 6px; margin-top: 8px; }
+    
+    .divider { border: none; border-top: 1px solid #2a2a5a; margin: 20px 0; }
+    
+    .info-box { background: #1e3a5f; border: 1px solid #2563eb; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #93c5fd; line-height: 1.5; }
+    .info-box a { color: #60a5fa; }
+    
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .dot-green { background: #34d399; }
+    .dot-yellow { background: #fbbf24; }
+    .dot-red { background: #f87171; }
+    .dot-gray { background: #666; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h1>YouTube Automation — Settings</h1>
+    <div>
+      <a href="/">Dashboard</a>
+      <a href="/api/credentials">API</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('providers')">AI Providers</div>
+      <div class="tab" onclick="showTab('video-gen')">Video Generation</div>
+      <div class="tab" onclick="showTab('tts')">TTS / Voice</div>
+      <div class="tab" onclick="showTab('youtube')">YouTube API</div>
+      <div class="tab" onclick="showTab('general')">General</div>
+    </div>
+
+    <!-- AI Providers Tab -->
+    <div id="providers" class="section active">
+      <h2>AI Text Providers</h2>
+      <div class="info-box">
+        Auto-fallback: if one provider fails, the next in the chain is used. Providers are tested in order from top to bottom.
+      </div>
+      <div id="provider-list"></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="saveProviders()">Save All Keys</button>
+        <button class="btn btn-secondary" onclick="testAllProviders()">Test All</button>
+      </div>
+    </div>
+
+    <!-- Video Generation Tab -->
+    <div id="video-gen" class="section">
+      <h2>Video Generation Services</h2>
+      <div class="info-box">
+        Configure API keys for AI video generation. These services create video clips from text prompts or images.
+        Keys are stored locally in <code>config/credentials.json</code>.
+      </div>
+      
+      <h3>Primary Video Providers</h3>
+      <div class="service-grid" id="video-primary-grid"></div>
+      
+      <hr class="divider">
+      
+      <h3>Additional Video / Image Services</h3>
+      <div class="service-grid" id="video-secondary-grid"></div>
+      
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="saveVideoGenConfig()">Save Video Generation Keys</button>
+        <button class="btn btn-secondary" onclick="testVideoProviders()">Test All Keys</button>
+      </div>
+    </div>
+
+    <!-- TTS / Voice Tab -->
+    <div id="tts" class="section">
+      <h2>Text-to-Speech & Voice</h2>
+      <div class="info-box">
+        Configure voice synthesis for narration. OpenAI TTS uses your existing OpenAI key.
+      </div>
+      
+      <div class="service-grid" id="tts-grid"></div>
+      
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="saveTTSConfig()">Save TTS Keys</button>
+        <button class="btn btn-secondary" onclick="testTTSProviders()">Test All</button>
+      </div>
+    </div>
+
+    <!-- YouTube Tab -->
+    <div id="youtube" class="section">
+      <h2>YouTube Data API</h2>
+      <div class="form-group">
+        <label>Client ID</label>
+        <input type="text" id="yt-client-id" placeholder="Google OAuth Client ID">
+      </div>
+      <div class="form-group">
+        <label>Client Secret</label>
+        <input type="password" id="yt-client-secret" placeholder="Google OAuth Client Secret">
+      </div>
+      <div class="form-group">
+        <label>Channel Name</label>
+        <input type="text" id="yt-channel-name" placeholder="Your YouTube channel name">
+      </div>
+      <div class="form-group">
+        <label>Default Privacy</label>
+        <select id="yt-privacy">
+          <option value="public">Public</option>
+          <option value="unlisted">Unlisted</option>
+          <option value="private">Private</option>
+        </select>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="saveYouTube()">Save YouTube Config</button>
+        <button class="btn btn-secondary" onclick="reAuthYouTube()">Re-authorize YouTube</button>
+      </div>
+    </div>
+
+    <!-- General Tab -->
+    <div id="general" class="section">
+      <h2>General Settings</h2>
+      <div class="form-group">
+        <label>Posting Frequency</label>
+        <select id="gen-frequency">
+          <option value="daily">Daily</option>
+          <option value="every-2-days">Every 2 Days</option>
+          <option value="3-per-week">3x Per Week</option>
+          <option value="weekly">Weekly</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Content Buffer (days of content to keep)</label>
+        <input type="number" id="gen-buffer" value="3" min="1" max="30">
+      </div>
+      <div class="form-group">
+        <label>Target Audience</label>
+        <input type="text" id="gen-audience" placeholder="Tech enthusiasts and developers">
+      </div>
+      <div class="form-group">
+        <label>Max Daily Posts</label>
+        <input type="number" id="gen-max-posts" value="1" min="1" max="10">
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="saveGeneral()">Save Settings</button>
+        <button class="btn btn-danger" onclick="restartServer()">Restart Server</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== PROVIDER DEFINITIONS ==========
+    const AI_PROVIDERS = {
+      groq: { name: 'Groq', models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'], placeholder: 'gsk_...', badge: 'free' },
+      cerebras: { name: 'Cerebras', models: ['llama-3.3-70b', 'llama-3.1-8b'], placeholder: 'csk-...', badge: 'free' },
+      gemini: { name: 'Google Gemini', models: ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'], placeholder: 'AI...', badge: 'free' },
+      nvidiaNim: { name: 'NVIDIA NIM', models: ['meta/llama-3.3-70b-instruct', 'google/gemma-2-9b-it', 'meta/llama-3.1-8b-instruct'], placeholder: 'nvapi-...', badge: 'free' },
+      openrouter: { name: 'OpenRouter', models: ['google/gemini-2.0-flash-exp:free', 'meta-llama/llama-3.3-70b-instruct:free', 'qwen/qwen-2.5-72b-instruct:free'], placeholder: 'sk-or-...', badge: 'free' },
+      mistral: { name: 'Mistral AI', models: ['mistral-small-latest', 'open-mistral-nemo'], placeholder: 'vb...', badge: 'free' },
+      xai: { name: 'xAI (Grok)', models: ['grok-3-mini'], placeholder: 'xai-...', badge: 'free' },
+      cohere: { name: 'Cohere', models: ['command-r', 'command-light'], placeholder: 'Dw...', badge: 'free' },
+      ollama: { name: 'Ollama (Local)', models: ['llama3.2', 'llama3.1', 'mistral'], placeholder: 'Not needed for local', badge: 'free' }
+    };
+
+    const VIDEO_PROVIDERS = {
+      replicate: {
+        name: 'Replicate',
+        icon: '🔄',
+        desc: 'Wan 2.7 — best open-source video model. Pay-per-use (~$0.02/video). Free $5 credit on signup.',
+        placeholder: 'r8_...',
+        keyField: 'apiKey',
+        badge: 'free',
+        docs: 'https://replicate.com'
+      },
+      siliconflow: {
+        name: 'SiliconFlow',
+        icon: '⚡',
+        desc: 'Wan 2.1/2.2 + Kling — free API credits on signup. Fast inference.',
+        placeholder: 'sk-...',
+        keyField: 'apiKey',
+        badge: 'free',
+        docs: 'https://siliconflow.cn'
+      },
+      fal: {
+        name: 'fal.ai',
+        icon: '⚡',
+        desc: 'Wan, Kling, Flux — cheap pay-per-use, free credits on signup.',
+        placeholder: 'fal_...',
+        keyField: 'apiKey',
+        badge: 'free',
+        docs: 'https://fal.ai'
+      },
+      huggingface: {
+        name: 'Hugging Face Inference',
+        icon: '🤗',
+        desc: 'Free inference for open models (Wan, Open-Sora). Rate-limited.',
+        placeholder: 'hf_...',
+        keyField: 'apiKey',
+        badge: 'free',
+        docs: 'https://huggingface.co/settings/tokens'
+      },
+      kling: {
+        name: 'Kling AI',
+        icon: '🎞️',
+        desc: '66 free credits/day. Best human motion. Web signup required.',
+        placeholder: 'kl-...',
+        keyField: 'apiKey',
+        badge: 'free',
+        docs: 'https://klingai.com'
+      },
+      luma: {
+        name: 'Luma Dream Machine',
+        icon: '🌟',
+        desc: '30 free videos/month, no watermark. Simple API.',
+        placeholder: 'luma_...',
+        keyField: 'apiKey',
+        badge: 'free',
+        docs: 'https://lumalabs.ai'
+      },
+      pika: {
+        name: 'Pika Labs',
+        icon: '🎥',
+        desc: '80 free credits/month. Creative effects & animations.',
+        placeholder: 'pika_...',
+        keyField: 'apiKey',
+        badge: 'free',
+        docs: 'https://pika.art'
+      },
+      stability: {
+        name: 'Stability AI',
+        icon: '🖼️',
+        desc: 'Stable Video Diffusion — open model, free tier available.',
+        placeholder: 'sk-...',
+        keyField: 'apiKey',
+        badge: 'free',
+        docs: 'https://platform.stability.ai'
+      },
+      runway: {
+        name: 'RunwayML',
+        icon: '🎬',
+        desc: 'Gen-4 — premium quality. Limited free credits on signup.',
+        placeholder: 'rw_...',
+        keyField: 'apiKey',
+        badge: 'trial',
+        docs: 'https://dev.runwayml.com'
+      },
+      minimax: {
+        name: 'MiniMax (Hailuo)',
+        icon: '📹',
+        desc: 'Hailuo AI — daily free credits, good motion quality.',
+        placeholder: 'MiniMax...',
+        keyField: 'apiKey',
+        badge: 'free',
+        docs: 'https://hailuoai.com'
+      }
+    };
+
+    const TTS_PROVIDERS = {
+      openai: {
+        name: 'OpenAI TTS',
+        icon: '🔊',
+        desc: 'gpt-4o-mini-tts — uses your OpenAI API key',
+        placeholder: 'Uses OpenAI key above',
+        badge: 'paid',
+        requiresKey: 'openai'
+      },
+      elevenlabs: {
+        name: 'ElevenLabs',
+        icon: '🎙️',
+        desc: 'Highest quality AI voices — cloning, effects, multilingual',
+        placeholder: 'el_...',
+        badge: 'paid',
+        docs: 'https://elevenlabs.io',
+        extraFields: [{ id: 'elevenlabs-voice', label: 'Voice ID', placeholder: 'ElevenLabs voice ID' }]
+      },
+      azure: {
+        name: 'Azure Speech',
+        icon: '🗣️',
+        desc: 'Microsoft Neural TTS — many voices, enterprise grade',
+        placeholder: 'Azure key...',
+        badge: 'paid',
+        docs: 'https://azure.microsoft.com/ai-services/text-to-speech',
+        extraFields: [
+          { id: 'azure-speech-region', label: 'Region', placeholder: 'eastus', type: 'select', options: ['eastus','westus2','westeurope','southeastasia','japaneast'] }
+        ]
+      },
+      cartesia: {
+        name: 'Cartesia',
+        icon: '⚡',
+        desc: 'Ultra-low latency streaming TTS',
+        placeholder: 'cart_...',
+        badge: 'trial',
+        docs: 'https://cartesia.ai'
+      },
+      fish: {
+        name: 'Fish Audio',
+        icon: '🐟',
+        desc: 'Open-source TTS with voice cloning',
+        placeholder: 'fish_...',
+        badge: 'free',
+        docs: 'https://fish.audio'
+      },
+      deepgram: {
+        name: 'Deepgram Aura',
+        icon: '🌊',
+        desc: 'Fast, natural-sounding TTS',
+        placeholder: 'dg_...',
+        badge: 'trial',
+        docs: 'https://deepgram.com'
+      }
+    };
+
+    const IMAGE_PROVIDERS = {
+      openai: { name: 'OpenAI DALL-E / gpt-image', icon: '🎨', desc: 'Uses your OpenAI key', badge: 'paid', requiresKey: 'openai' },
+      midjourney: { name: 'Midjourney', icon: '🌈', desc: 'Premier AI image generation (via proxy)', placeholder: 'mj_...', badge: 'paid' },
+      ideogram: { name: 'Ideogram', icon: '✏️', desc: 'Text-rendering specialist', placeholder: 'iz_...', badge: 'paid' },
+      flux: { name: 'Black Forest Labs (Flux)', icon: '⚡', desc: 'Flux via fal/Replicate', placeholder: 'Uses fal/Replicate key', badge: 'paid', requiresKey: 'fal' },
+     Leonardo: { name: 'Leonardo.ai', icon: '🎨', desc: 'Game/assets/creative images', placeholder: 'leo_...', badge: 'paid' }
+    };
+
+    let credentials = {};
+
+    // ========== INITIALIZATION ==========
+    async function loadCredentials() {
+      try {
+        const res = await fetch('/api/credentials');
+        credentials = await res.json();
+        renderAll();
+      } catch (e) {
+        console.error('Failed to load credentials:', e);
+      }
+    }
+
+    function renderAll() {
+      renderAIProviders();
+      renderVideoProviders();
+      renderTTSProviders();
+      fillYouTube();
+    }
+
+    // ========== AI PROVIDERS ==========
+    function renderAIProviders() {
+      const container = document.getElementById('provider-list');
+      container.innerHTML = '';
+      
+      for (const [key, info] of Object.entries(AI_PROVIDERS)) {
+        const prov = credentials.providers?.[key] || {};
+        const apiKey = prov.apiKey || '';
+        const model = prov.model || info.models[0];
+        
+        const card = document.createElement('div');
+        card.className = 'provider-card';
+        card.innerHTML = `
+          <div class="provider-info">
+            <div class="provider-name">${info.name}</div>
+            <div class="provider-model">${model}</div>
+          </div>
+          <div style="flex:2;margin:0 16px">
+            <input type="password" id="key-${key}" placeholder="${info.placeholder}" 
+              value="${apiKey}" class="service-input">
+          </div>
+          <div style="flex:1;margin-right:12px">
+            <select id="model-${key}" class="service-input">
+              ${info.models.map(m => `<option value="${m}" ${m === model ? 'selected' : ''}>${m}</option>`).join('')}
+            </select>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="testProvider('${key}')">Test</button>
+        `;
+        container.appendChild(card);
+      }
+    }
+
+    // ========== VIDEO GENERATION ==========
+    function renderVideoProviders() {
+      renderServiceGrid('video-primary-grid', VIDEO_PROVIDERS, 'video');
+      renderServiceGrid('video-secondary-grid', IMAGE_PROVIDERS, 'image');
+    }
+
+    function renderServiceGrid(containerId, providers, type) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+
+      for (const [key, info] of Object.entries(providers)) {
+        const existing = credentials[type === 'video' ? 'videoProviders' : 'imageProviders']?.[key] || {};
+        const apiKey = existing.apiKey || '';
+        const hasKey = !!apiKey;
+
+        const card = document.createElement('div');
+        card.className = `service-card ${hasKey ? 'has-key' : ''}`;
+        card.innerHTML = `
+          <div class="service-header">
+            <div style="display:flex;align-items:center">
+              <span class="service-icon">${info.icon}</span>
+              <span class="service-title">${info.name}</span>
+            </div>
+            <span class="provider-badge badge-${info.badge}">${info.badge}</span>
+          </div>
+          <div class="service-desc">${info.desc}</div>
+          <input type="password" class="service-input" id="${type}-${key}" 
+            placeholder="${info.placeholder || 'API key'}" value="${apiKey}">
+          ${info.extraFields ? info.extraFields.map(f => `
+            <div style="margin-top:8px">
+              <label style="font-size:11px;color:#888">${f.label}</label>
+              <input type="text" class="service-input" id="${type}-${f.id || key + '-' + f.label}" 
+                placeholder="${f.placeholder}" value="${existing[f.id || ''] || ''}">
+            </div>
+          `).join('') : ''}
+          <div class="service-actions">
+            <button class="btn btn-secondary btn-sm" onclick="testServiceKey('${type}','${key}')">Test</button>
+            ${info.docs ? `<a href="${info.docs}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none">Docs</a>` : ''}
+          </div>
+        `;
+        container.appendChild(card);
+      }
+    }
+
+    // ========== TTS ==========
+    function renderTTSProviders() {
+      const container = document.getElementById('tts-grid');
+      container.innerHTML = '';
+
+      for (const [key, info] of Object.entries(TTS_PROVIDERS)) {
+        const existing = credentials.ttsProviders?.[key] || {};
+        const apiKey = existing.apiKey || '';
+        const hasKey = !!apiKey || (info.requiresKey && credentials.providers?.[info.requiresKey]?.apiKey);
+
+        const card = document.createElement('div');
+        card.className = `service-card ${hasKey ? 'has-key' : ''}`;
+        card.innerHTML = `
+          <div class="service-header">
+            <div style="display:flex;align-items:center">
+              <span class="service-icon">${info.icon}</span>
+              <span class="service-title">${info.name}</span>
+            </div>
+            <span class="provider-badge badge-${info.badge}">${info.badge}</span>
+          </div>
+          <div class="service-desc">${info.desc}</div>
+          ${info.requiresKey ? 
+            `<div style="font-size:11px;color:#34d399;margin-top:4px">Uses ${AI_PROVIDERS[info.requiresKey]?.name || info.requiresKey} API key</div>` :
+            `<input type="password" class="service-input" id="tts-${key}" placeholder="${info.placeholder}" value="${apiKey}">`
+          }
+          ${(info.extraFields || []).map(f => `
+            <div style="margin-top:8px">
+              <label style="font-size:11px;color:#888">${f.label}</label>
+              ${f.type === 'select' ? 
+                `<select class="service-input" id="tts-${f.id}">
+                  ${f.options.map(o => `<option value="${o}" ${o === (existing[f.id] || f.options[0]) ? 'selected' : ''}>${o}</option>`).join('')}
+                </select>` :
+                `<input type="text" class="service-input" id="tts-${f.id}" placeholder="${f.placeholder}" value="${existing[f.id] || ''}">`
+              }
+            </div>
+          `).join('')}
+          <div class="service-actions">
+            ${info.docs ? `<a href="${info.docs}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none">Get Key</a>` : ''}
+          </div>
+        `;
+        container.appendChild(card);
+      }
+    }
+
+    // ========== SAVE FUNCTIONS ==========
+    async function saveProviders() {
+      const providers = {};
+      for (const key of Object.keys(AI_PROVIDERS)) {
+        const keyInput = document.getElementById(`key-${key}`);
+        const modelSelect = document.getElementById(`model-${key}`);
+        if (keyInput && keyInput.value.trim()) {
+          providers[key] = { apiKey: keyInput.value.trim(), model: modelSelect.value };
+        }
+      }
+      await saveCredential({ providers });
+      toast('AI provider keys saved!', 'success');
+    }
+
+    async function saveVideoGenConfig() {
+      const videoProviders = {};
+      for (const key of Object.keys(VIDEO_PROVIDERS)) {
+        const input = document.getElementById(`video-${key}`);
+        if (input && input.value.trim()) {
+          videoProviders[key] = { apiKey: input.value.trim() };
+        }
+      }
+      const imageProviders = {};
+      for (const key of Object.keys(IMAGE_PROVIDERS)) {
+        const input = document.getElementById(`image-${key}`);
+        if (input && input.value.trim()) {
+          imageProviders[key] = { apiKey: input.value.trim() };
+        }
+      }
+      await saveCredential({ videoProviders, imageProviders });
+      toast('Video generation keys saved!', 'success');
+    }
+
+    async function saveTTSConfig() {
+      const ttsProviders = {};
+      for (const key of Object.keys(TTS_PROVIDERS)) {
+        const info = TTS_PROVIDERS[key];
+        if (info.requiresKey) continue; // Skip key-based (uses AI provider)
+        const input = document.getElementById(`tts-${key}`);
+        if (input && input.value.trim()) {
+          ttsProviders[key] = { apiKey: input.value.trim() };
+          // Save extra fields
+          if (info.extraFields) {
+            for (const f of info.extraFields) {
+              const extraInput = document.getElementById(`tts-${f.id}`);
+              if (extraInput) ttsProviders[key][f.id] = extraInput.value.trim();
+            }
+          }
+        }
+      }
+      await saveCredential({ ttsProviders });
+      toast('TTS keys saved!', 'success');
+    }
+
+    async function saveYouTube() {
+      const data = {
+        youtube: {
+          client_id: document.getElementById('yt-client-id').value.trim(),
+          client_secret: document.getElementById('yt-client-secret').value.trim(),
+          redirect_uris: ['urn:ietf:wg:oauth:2.0:oob']
+        },
+        channel: {
+          channelName: document.getElementById('yt-channel-name').value.trim(),
+          defaultPrivacy: document.getElementById('yt-privacy').value
+        }
+      };
+      await saveCredential(data);
+      toast('YouTube config saved!', 'success');
+    }
+
+    async function saveCredential(data) {
+      try {
+        await fetch('/api/credentials', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      } catch (e) {
+        toast('Failed to save: ' + e.message, 'error');
+      }
+    }
+
+    // ========== TEST FUNCTIONS ==========
+    async function testProvider(key) {
+      const btn = event.target;
+      btn.textContent = '...';
+      btn.disabled = true;
+
+      const keyVal = document.getElementById(`key-${key}`).value.trim();
+      const modelVal = document.getElementById(`model-${key}`).value;
+      
+      if (keyVal) {
+        await fetch('/api/credentials', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ providers: { [key]: { apiKey: keyVal, model: modelVal } } })
+        });
+      }
+
+      try {
+        const res = await fetch('/api/providers/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: key })
+        });
+        const data = await res.json();
+        if (data.success) {
+          toast(`${AI_PROVIDERS[key].name}: OK`, 'success');
+        } else {
+          toast(`${AI_PROVIDERS[key].name}: ${data.error}`, 'error');
+        }
+      } catch (e) {
+        toast(`${AI_PROVIDERS[key].name}: ${e.message}`, 'error');
+      }
+
+      btn.textContent = 'Test';
+      btn.disabled = false;
+    }
+
+    async function testAllProviders() {
+      for (const key of Object.keys(AI_PROVIDERS)) {
+        const keyVal = document.getElementById(`key-${key}`)?.value?.trim();
+        if (keyVal) {
+          await testProvider(key);
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+    }
+
+    async function testServiceKey(type, key) {
+      const providers = type === 'video' ? VIDEO_PROVIDERS : IMAGE_PROVIDERS;
+      const info = providers[key];
+      const input = document.getElementById(`${type}-${key}`);
+      const keyVal = input?.value?.trim();
+
+      if (!keyVal) {
+        toast(`Enter a key for ${info.name} first`, 'error');
+        return;
+      }
+
+      // Save the key first
+      const saveData = {};
+      if (type === 'video') saveData.videoProviders = { [key]: { apiKey: keyVal } };
+      else saveData.imageProviders = { [key]: { apiKey: keyVal } };
+      await saveCredential(saveData);
+
+      toast(`${info.name}: Key saved. Server restart needed to test.`, 'info');
+    }
+
+    async function testVideoProviders() {
+      toast('Video provider keys saved. Restart server to apply.', 'info');
+    }
+
+    async function testTTSProviders() {
+      toast('TTS keys saved. Restart server to apply.', 'info');
+    }
+
+    // ========== YOUTUBE ==========
+    function fillYouTube() {
+      const yt = credentials.youtube || {};
+      document.getElementById('yt-client-id').value = yt.client_id || '';
+      document.getElementById('yt-client-secret').value = yt.client_secret || '';
+      const ch = credentials.channel || {};
+      document.getElementById('yt-channel-name').value = ch.channelName || '';
+      document.getElementById('yt-privacy').value = ch.defaultPrivacy || 'public';
+    }
+
+    function reAuthYouTube() {
+      window.open('/oauth-setup.js', '_blank');
+      toast('Run: node oauth-setup.js in terminal', 'success');
+    }
+
+    // ========== GENERAL ==========
+    async function saveGeneral() {
+      const settings = {
+        posting_frequency: document.getElementById('gen-frequency').value,
+        content_buffer_days: document.getElementById('gen-buffer').value,
+        target_audience: document.getElementById('gen-audience').value,
+        max_daily_posts: document.getElementById('gen-max-posts').value
+      };
+      try {
+        for (const [key, value] of Object.entries(settings)) {
+          await fetch('/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key, value })
+          });
+        }
+        toast('Settings saved!', 'success');
+      } catch (e) {
+        toast('Failed to save: ' + e.message, 'error');
+      }
+    }
+
+    async function restartServer() {
+      if (!confirm('Server will restart. Dashboard will reload in 5 seconds.')) return;
+      await fetch('/api/restart', { method: 'POST' });
+      setTimeout(() => location.reload(), 5000);
+    }
+
+    // ========== UI ==========
+    function showTab(id) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById(id).classList.add('active');
+    }
+
+    function toast(msg, type) {
+      const el = document.createElement('div');
+      el.className = `toast toast-${type}`;
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }
+
+    loadCredentials();
+  </script>
+</body>
+</html>

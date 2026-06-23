@@ -144,6 +144,210 @@ class YouTubeAutomationAgent {
         res.status(500).json({ success: false, error: error.message });
       }
     });
+
+    // === API Key Management ===
+
+    // Get all credentials (keys masked)
+    this.app.get('/api/credentials', async (req, res) => {
+      try {
+        const fs = require('fs').promises;
+        const credsPath = path.join(__dirname, 'config', 'credentials.json');
+        const raw = await fs.readFile(credsPath, 'utf8');
+        const creds = JSON.parse(raw);
+
+        // Mask API keys
+        const masked = JSON.parse(JSON.stringify(creds));
+        const maskKey = (key) => key ? key.substring(0, 8) + '...' + key.substring(key.length - 4) : '';
+
+        if (masked.youtube?.client_secret) masked.youtube.client_secret = maskKey(masked.youtube.client_secret);
+        if (masked.aiProvider?.apiKey) masked.aiProvider.apiKey = maskKey(masked.aiProvider.apiKey);
+        if (masked.providers) {
+          for (const [, p] of Object.entries(masked.providers)) {
+            if (p.apiKey) p.apiKey = maskKey(p.apiKey);
+          }
+        }
+        if (masked.videoProviders) {
+          for (const [, p] of Object.entries(masked.videoProviders)) {
+            if (p.apiKey) p.apiKey = maskKey(p.apiKey);
+          }
+        }
+        if (masked.imageProviders) {
+          for (const [, p] of Object.entries(masked.imageProviders)) {
+            if (p.apiKey) p.apiKey = maskKey(p.apiKey);
+          }
+        }
+        if (masked.ttsProviders) {
+          for (const [, p] of Object.entries(masked.ttsProviders)) {
+            if (p.apiKey) p.apiKey = maskKey(p.apiKey);
+          }
+        }
+        if (masked.replicate?.apiKey) masked.replicate.apiKey = maskKey(masked.replicate.apiKey);
+        if (masked.elevenLabs?.apiKey) masked.elevenLabs.apiKey = maskKey(masked.elevenLabs.apiKey);
+        if (masked.azureSpeech?.subscriptionKey) masked.azureSpeech.subscriptionKey = maskKey(masked.azureSpeech.subscriptionKey);
+
+        res.json(masked);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Update credentials
+    this.app.put('/api/credentials', async (req, res) => {
+      try {
+        const fs = require('fs').promises;
+        const credsPath = path.join(__dirname, 'config', 'credentials.json');
+        const updates = req.body;
+
+        let existing = {};
+        try {
+          const raw = await fs.readFile(credsPath, 'utf8');
+          existing = JSON.parse(raw);
+        } catch (e) { /* first time */ }
+
+        // Deep merge
+        const merged = this.deepMerge(existing, updates);
+        await fs.writeFile(credsPath, JSON.stringify(merged, null, 2));
+
+        res.json({ success: true, message: 'Credentials updated. Restart server to apply.' });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Get provider status
+    this.app.get('/api/providers', async (req, res) => {
+      try {
+        const { AITextService } = require('./utils/ai-text-service');
+        const fs = require('fs').promises;
+        const credsPath = path.join(__dirname, 'config', 'credentials.json');
+        const raw = await fs.readFile(credsPath, 'utf8');
+        const creds = JSON.parse(raw);
+        const service = new AITextService(creds);
+        res.json(service.getProviderStatus());
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Test a provider
+    this.app.post('/api/providers/test', async (req, res) => {
+      try {
+        const { provider } = req.body;
+        const { AITextService } = require('./utils/ai-text-service');
+        const fs = require('fs').promises;
+        const credsPath = path.join(__dirname, 'config', 'credentials.json');
+        const raw = await fs.readFile(credsPath, 'utf8');
+        const creds = JSON.parse(raw);
+        const service = new AITextService(creds);
+
+        const result = await service.generateWithProvider(provider, 'Say "connection successful" in exactly 3 words.', { maxTokens: 20 });
+        res.json({ success: true, provider, response: result });
+      } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+
+    // Get all settings
+    this.app.get('/api/settings', async (req, res) => {
+      try {
+        const settings = await this.db.getAllSettings();
+        res.json(settings);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Update a setting
+    this.app.put('/api/settings', async (req, res) => {
+      try {
+        const { key, value } = req.body;
+        await this.db.setSetting(key, value);
+        res.json({ success: true });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Get .env config
+    this.app.get('/api/env', async (req, res) => {
+      try {
+        const fs = require('fs').promises;
+        const envPath = path.join(__dirname, '.env');
+        const raw = await fs.readFile(envPath, 'utf8');
+
+        // Parse and mask
+        const lines = raw.split('\n');
+        const config = {};
+        for (const line of lines) {
+          const match = line.match(/^([A-Z_]+)=(.*)$/);
+          if (match) {
+            const key = match[1];
+            let val = match[2];
+            // Mask keys
+            if (key.includes('KEY') || key.includes('SECRET') || key.includes('TOKEN')) {
+              val = val ? val.substring(0, 8) + '...' + val.substring(val.length - 4) : '';
+            }
+            config[key] = val;
+          }
+        }
+        res.json(config);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Update .env
+    this.app.put('/api/env', async (req, res) => {
+      try {
+        const fs = require('fs').promises;
+        const envPath = path.join(__dirname, '.env');
+        const updates = req.body;
+
+        let raw = '';
+        try {
+          raw = await fs.readFile(envPath, 'utf8');
+        } catch (e) { /* first time */ }
+
+        for (const [key, value] of Object.entries(updates)) {
+          const regex = new RegExp(`^${key}=.*$`, 'm');
+          if (regex.test(raw)) {
+            raw = raw.replace(regex, `${key}=${value}`);
+          } else {
+            raw += `\n${key}=${value}`;
+          }
+        }
+
+        await fs.writeFile(envPath, raw.trim() + '\n');
+        res.json({ success: true, message: 'Environment updated. Restart server to apply.' });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Restart server
+    this.app.post('/api/restart', async (req, res) => {
+      res.json({ success: true, message: 'Server restarting...' });
+      setTimeout(() => process.exit(0), 500);
+    });
+  }
+
+  deepMerge(target, source) {
+    const output = Object.assign({}, target);
+    if (this.isObject(target) && this.isObject(source)) {
+      Object.keys(source).forEach(key => {
+        if (this.isObject(source[key])) {
+          if (!(key in target)) Object.assign(output, { [key]: source[key] });
+          else output[key] = this.deepMerge(target[key], source[key]);
+        } else {
+          Object.assign(output, { [key]: source[key] });
+        }
+      });
+    }
+    return output;
+  }
+
+  isObject(item) {
+    return (item && typeof item === 'object' && !Array.isArray(item));
   }
 
   async generateContent(topic = null, style = null, length = 'medium') {

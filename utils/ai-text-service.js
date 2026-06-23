@@ -2,128 +2,335 @@ const OpenAI = require('openai');
 const { Logger } = require('./logger');
 
 const PROVIDERS = {
-  openai: {
-    name: 'OpenAI',
-    baseURL: 'https://api.openai.com/v1',
-    defaultModel: 'gpt-5.5',
-    models: ['gpt-5.5', 'gpt-5.5-instant', 'gpt-5.4'],
-    envKey: 'OPENAI_API_KEY',
+  groq: {
+    name: 'Groq',
+    baseURL: 'https://api.groq.com/openai/v1',
+    defaultModel: 'llama-3.3-70b-versatile',
+    models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'],
+    envKey: 'GROQ_API_KEY',
+    type: 'openai-compatible',
+    free: true
+  },
+  cerebras: {
+    name: 'Cerebras',
+    baseURL: 'https://api.cerebras.ai/v1',
+    defaultModel: 'llama-3.3-70b',
+    models: ['llama-3.3-70b', 'llama-3.1-8b'],
+    envKey: 'CEREBRAS_API_KEY',
+    type: 'openai-compatible',
+    free: true
+  },
+  gemini: {
+    name: 'Google Gemini',
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+    defaultModel: 'gemini-2.0-flash',
+    models: ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'],
+    envKey: 'GEMINI_API_KEY',
+    type: 'gemini',
+    free: true
+  },
+  nvidiaNim: {
+    name: 'NVIDIA NIM',
+    baseURL: 'https://integrate.api.nvidia.com/v1',
+    defaultModel: 'meta/llama-3.3-70b-instruct',
+    models: ['meta/llama-3.3-70b-instruct', 'google/gemma-2-9b-it', 'meta/llama-3.1-8b-instruct'],
+    envKey: 'NVIDIA_NIM_API_KEY',
+    type: 'openai-compatible',
+    free: true
   },
   openrouter: {
     name: 'OpenRouter',
     baseURL: 'https://openrouter.ai/api/v1',
-    defaultModel: 'openai/gpt-5.5',
-    models: ['openai/gpt-5.5', 'anthropic/claude-opus-4-8', 'google/gemini-3.5-flash', 'moonshotai/kimi-k2.6', 'zhipu/glm-5'],
+    defaultModel: 'google/gemini-2.0-flash-exp:free',
+    models: ['google/gemini-2.0-flash-exp:free', 'meta-llama/llama-3.3-70b-instruct:free', 'qwen/qwen-2.5-72b-instruct:free'],
     envKey: 'OPENROUTER_API_KEY',
+    type: 'openai-compatible',
+    free: true
   },
-  kimi: {
-    name: 'Kimi (Moonshot AI)',
-    baseURL: 'https://api.moonshot.ai/v1',
-    defaultModel: 'kimi-k2.6',
-    models: ['kimi-k2.6', 'kimi-k2.5', 'moonshot-v1-auto'],
-    envKey: 'MOONSHOT_API_KEY',
+  mistral: {
+    name: 'Mistral AI',
+    baseURL: 'https://api.mistral.ai/v1',
+    defaultModel: 'mistral-small-latest',
+    models: ['mistral-small-latest', 'open-mistral-nemo'],
+    envKey: 'MISTRAL_API_KEY',
+    type: 'openai-compatible',
+    free: true
   },
-  mimo: {
-    name: 'MiMo (Xiaomi)',
-    baseURL: 'https://api.xiaomimimo.com/v1',
-    defaultModel: 'mimo-v2.5-pro',
-    models: ['mimo-v2.5-pro', 'mimo-v2.5'],
-    envKey: 'MIMO_API_KEY',
+  xai: {
+    name: 'xAI (Grok)',
+    baseURL: 'https://api.x.ai/v1',
+    defaultModel: 'grok-3-mini',
+    models: ['grok-3-mini'],
+    envKey: 'XAI_API_KEY',
+    type: 'openai-compatible',
+    free: true
   },
-  glm: {
-    name: 'GLM (Zhipu AI)',
-    baseURL: 'https://api.z.ai/api/paas/v4/',
-    defaultModel: 'glm-5',
-    models: ['glm-5', 'glm-5.1'],
-    envKey: 'GLM_API_KEY',
+  cohere: {
+    name: 'Cohere',
+    baseURL: 'https://api.cohere.com/v2',
+    defaultModel: 'command-r',
+    models: ['command-r', 'command-light'],
+    envKey: 'COHERE_API_KEY',
+    type: 'cohere',
+    free: true
   },
+  ollama: {
+    name: 'Ollama (Local)',
+    baseURL: 'http://localhost:11434/v1',
+    defaultModel: 'llama3.2',
+    models: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3'],
+    envKey: 'OLLAMA_API_KEY',
+    type: 'openai-compatible',
+    optional: true,
+    free: true
+  }
 };
+
+// Fallback order: fastest/most reliable free providers first
+const FALLBACK_ORDER = [
+  'groq',        // Fastest inference, generous free tier
+  'cerebras',    // Ultra-fast, free tier
+  'gemini',      // Google free tier, excellent quality
+  'nvidiaNim',   // Free credits, good models
+  'openrouter',  // Free models available
+  'mistral',     // Free tier available
+  'xai',         // Free tier for grok-3-mini
+  'cohere',      // Free tier for command-r
+  'ollama'       // Local, always free
+];
 
 class AITextService {
   constructor(credentials = {}) {
     this.logger = new Logger('AITextService');
-    this.client = null;
-    this.gemini = null;
-    this.model = null;
-    this.providerName = null;
+    this.clients = new Map();
+    this.activeProvider = null;
+    this.activeModel = null;
+    this.geminiClient = null;
+    this.cohereClient = null;
+    this.providerHealth = new Map();
 
     this._init(credentials);
   }
 
   _init(credentials) {
-    const provider = credentials.aiProvider?.provider;
-    const apiKey = credentials.aiProvider?.apiKey;
-    const model = credentials.aiProvider?.model;
+    // Build provider list from credentials or env vars
+    const availableProviders = [];
 
-    if (provider && PROVIDERS[provider] && apiKey) {
-      return this._initOpenAICompatible(PROVIDERS[provider], apiKey, model);
-    }
+    for (const [key, preset] of Object.entries(PROVIDERS)) {
+      let apiKey = null;
 
-    for (const [, preset] of Object.entries(PROVIDERS)) {
-      const key = process.env[preset.envKey];
-      if (key) {
-        return this._initOpenAICompatible(preset, key);
+      // Check credentials object first
+      if (credentials.providers && credentials.providers[key] && credentials.providers[key].apiKey) {
+        apiKey = credentials.providers[key].apiKey;
+      }
+      // Check aiProvider match
+      else if (credentials.aiProvider && credentials.aiProvider.provider === key && credentials.aiProvider.apiKey) {
+        apiKey = credentials.aiProvider.apiKey;
+      }
+      // Fallback to env var
+      else if (process.env[preset.envKey]) {
+        apiKey = process.env[preset.envKey];
+      }
+
+      if (apiKey || preset.type === 'openai-compatible' && preset.optional) {
+        availableProviders.push({ key, preset, apiKey });
+        this.providerHealth.set(key, { success: 0, fail: 0, lastError: null });
       }
     }
 
-    const geminiKey = credentials.gemini?.apiKey || process.env.GEMINI_API_KEY;
-    if (geminiKey) {
-      return this._initGemini(geminiKey, credentials.gemini?.model);
+    // Sort by fallback order
+    availableProviders.sort((a, b) => {
+      const aIdx = FALLBACK_ORDER.indexOf(a.key);
+      const bIdx = FALLBACK_ORDER.indexOf(b.key);
+      return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
+    });
+
+    if (availableProviders.length === 0) {
+      this.logger.warn('No AI text providers configured');
+      return;
     }
 
-    this.logger.warn('No AI text provider configured — text generation unavailable');
+    // Initialize clients
+    for (const { key, preset, apiKey } of availableProviders) {
+      if (preset.type === 'gemini' && apiKey) {
+        this._initGemini(apiKey, preset);
+      } else if (preset.type === 'cohere' && apiKey) {
+        this._initCohere(apiKey, preset);
+      } else if (preset.type === 'openai-compatible' && apiKey) {
+        this._initOpenAICompatible(key, preset, apiKey);
+      }
+    }
+
+    // Set active provider to first available
+    const firstKey = availableProviders[0]?.key;
+    if (firstKey) {
+      this.activeProvider = firstKey;
+      this.activeModel = availableProviders[0].preset.defaultModel;
+      this.logger.info(`Active provider: ${availableProviders[0].preset.name} (${this.activeModel})`);
+    }
+
+    this.logger.info(`${availableProviders.length} provider(s) available for fallback`);
   }
 
-  _initOpenAICompatible(preset, apiKey, model) {
-    this.client = new OpenAI({ apiKey, baseURL: preset.baseURL });
-    this.model = model || preset.defaultModel;
-    this.providerName = preset.name;
-    this.logger.info(`${preset.name} initialized (model: ${this.model})`);
+  _initOpenAICompatible(key, preset, apiKey) {
+    try {
+      const client = new OpenAI({
+        apiKey,
+        baseURL: preset.baseURL,
+        timeout: 30000
+      });
+      this.clients.set(key, { client, preset });
+      this.logger.info(`${preset.name} initialized (${preset.defaultModel})`);
+    } catch (error) {
+      this.logger.error(`Failed to init ${preset.name}:`, error.message);
+    }
   }
 
-  _initGemini(apiKey, model) {
+  _initGemini(apiKey, preset) {
     try {
       const { GoogleGenAI } = require('@google/genai');
-      this.gemini = new GoogleGenAI({ apiKey });
-      this.model = model || 'gemini-3.5-flash';
-      this.providerName = 'Google Gemini';
-      this.logger.info(`Gemini initialized (model: ${this.model})`);
+      this.geminiClient = new GoogleGenAI({ apiKey });
+      this.clients.set('gemini', { preset, type: 'gemini' });
+      this.logger.info(`${preset.name} initialized (${preset.defaultModel})`);
     } catch (error) {
-      this.logger.error('Failed to initialize Gemini:', error.message);
+      this.logger.error(`Failed to init ${preset.name}:`, error.message);
+    }
+  }
+
+  _initCohere(apiKey, preset) {
+    try {
+      // Use OpenAI-compatible endpoint for Cohere
+      const client = new OpenAI({
+        apiKey,
+        baseURL: 'https://api.cohere.com/compatibility/v1',
+        timeout: 30000
+      });
+      this.clients.set('cohere', { client, preset });
+      this.logger.info(`${preset.name} initialized (${preset.defaultModel})`);
+    } catch (error) {
+      this.logger.error(`Failed to init ${preset.name}:`, error.message);
     }
   }
 
   async generateText(prompt, options = {}) {
-    const model = options.model || this.model;
     const maxTokens = options.maxTokens || 2048;
     const temperature = options.temperature ?? 0.7;
+    const requestedProvider = options.provider || null;
 
-    if (this.gemini) {
-      const response = await this.gemini.models.generateContent({
-        model,
+    // If specific provider requested, try only that one
+    if (requestedProvider && this.clients.has(requestedProvider)) {
+      return await this._callProvider(requestedProvider, prompt, maxTokens, temperature);
+    }
+
+    // Try providers in fallback order
+    const tried = new Set();
+    const errors = [];
+
+    for (const providerKey of FALLBACK_ORDER) {
+      if (!this.clients.has(providerKey) || tried.has(providerKey)) continue;
+      tried.add(providerKey);
+
+      try {
+        const result = await this._callProvider(providerKey, prompt, maxTokens, temperature);
+        this._recordSuccess(providerKey);
+        return result;
+      } catch (error) {
+        this._recordFailure(providerKey, error);
+        errors.push({ provider: providerKey, error: error.message });
+        this.logger.warn(`${PROVIDERS[providerKey]?.name || providerKey} failed: ${error.message.substring(0, 100)}`);
+      }
+    }
+
+    throw new Error(`All providers failed. Errors:\n${errors.map(e => `  ${e.provider}: ${e.error}`).join('\n')}`);
+  }
+
+  async _callProvider(providerKey, prompt, maxTokens, temperature) {
+    const provider = this.clients.get(providerKey);
+    if (!provider) throw new Error(`Provider ${providerKey} not available`);
+
+    // Gemini uses native SDK
+    if (providerKey === 'gemini' && this.geminiClient) {
+      const response = await this.geminiClient.models.generateContent({
+        model: provider.preset.defaultModel,
         contents: prompt,
-        config: { maxOutputTokens: maxTokens, temperature },
+        config: { maxOutputTokens: maxTokens, temperature }
       });
       return response.text;
     }
 
-    if (!this.client) {
-      throw new Error('No AI text provider configured');
+    // OpenAI-compatible providers
+    if (provider.client) {
+      const response = await provider.client.chat.completions.create({
+        model: provider.preset.defaultModel,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: maxTokens,
+        temperature
+      });
+      return response.choices[0].message.content;
     }
 
-    const response = await this.client.chat.completions.create({
-      model,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: maxTokens,
-      temperature,
-    });
+    throw new Error(`No client for provider ${providerKey}`);
+  }
 
-    return response.choices[0].message.content;
+  async generateWithProvider(providerKey, prompt, options = {}) {
+    if (!this.clients.has(providerKey)) {
+      throw new Error(`Provider ${providerKey} not available`);
+    }
+    return await this._callProvider(providerKey, prompt, options.maxTokens || 2048, options.temperature ?? 0.7);
+  }
+
+  _recordSuccess(providerKey) {
+    const health = this.providerHealth.get(providerKey);
+    if (health) {
+      health.success++;
+      health.lastError = null;
+    }
+    this.activeProvider = providerKey;
+  }
+
+  _recordFailure(providerKey, error) {
+    const health = this.providerHealth.get(providerKey);
+    if (health) {
+      health.fail++;
+      health.lastError = error.message;
+    }
+  }
+
+  getProviderStatus() {
+    const status = {};
+    for (const [key, health] of this.providerHealth) {
+      const preset = PROVIDERS[key];
+      status[key] = {
+        name: preset?.name || key,
+        available: this.clients.has(key),
+        success: health.success,
+        fail: health.fail,
+        lastError: health.lastError,
+        isActive: key === this.activeProvider
+      };
+    }
+    return status;
+  }
+
+  getActiveProvider() {
+    return {
+      key: this.activeProvider,
+      name: PROVIDERS[this.activeProvider]?.name,
+      model: this.activeModel
+    };
   }
 
   isAvailable() {
-    return !!(this.client || this.gemini);
+    return this.clients.size > 0;
+  }
+
+  getAvailableProviders() {
+    return Array.from(this.clients.keys()).map(key => ({
+      key,
+      name: PROVIDERS[key]?.name,
+      model: PROVIDERS[key]?.defaultModel
+    }));
   }
 }
 
-module.exports = { AITextService, PROVIDERS };
+module.exports = { AITextService, PROVIDERS, FALLBACK_ORDER };
