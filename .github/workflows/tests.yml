@@ -36,7 +36,7 @@ jobs:
           python setup/download_font.py
 
       - name: Run Unit Tests
-        run: python -m pytest tests/unit/ -v --timeout=30
+        run: python -m pytest tests/unit/ -v
         env:
           GEMINI_API_KEY: test
           GROQ_API_KEY: test

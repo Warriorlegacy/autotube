@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-import os
 import sys
-import time
 from pathlib import Path
 
 from modules.assembler import assemble_video
@@ -20,11 +18,10 @@ from utils.alerts import (
     send_quota_alert,
     send_success_alert,
 )
-from utils.config_loader import get_api_key, load_config
+from utils.config_loader import load_config
 from utils.db import (
     check_quota_available,
     create_pipeline_run,
-    record_api_usage,
     update_pipeline_run,
 )
 from utils.logger import PipelineLogger, setup_logging
@@ -158,7 +155,6 @@ def run_pipeline(topic: TopicItem, config: dict) -> dict:
         )
         result["stage"] = "QA_CHECKING"
 
-        upload_needed = True
         review_mode = config["pipeline"].get("review_before_upload", False)
         if review_mode:
             metadata.privacy_status = "unlisted"
@@ -243,7 +239,6 @@ def run_pipeline(topic: TopicItem, config: dict) -> dict:
 
 
 def _cleanup_temp_files(topic_id: str) -> None:
-    import shutil
 
     for dir_name in ["audio", "media", "video", "thumbnails"]:
         path = Path(f"output/{dir_name}")

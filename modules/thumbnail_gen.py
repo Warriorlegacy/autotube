@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont
 
 THUMBNAIL_SPECS = {
     "width": 1280,

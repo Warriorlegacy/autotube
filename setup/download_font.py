@@ -44,7 +44,7 @@ def download_from_github() -> bool:
         r.raise_for_status()
         with open(FONT_DIR / "Montserrat-Bold.ttf", "wb") as f:
             f.write(r.content)
-        print(f"Downloaded Montserrat-Bold.ttf from GitHub")
+        print("Downloaded Montserrat-Bold.ttf from GitHub")
         return True
     except Exception as e:
         print(f"GitHub download failed: {e}")
