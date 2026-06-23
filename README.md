@@ -1,8 +1,8 @@
 # YouTube Automation Agent
 
 <p align="center">
-  <a href="https://website-4n305epj6-piyushs-projects-1495f171.vercel.app">
-    <strong>🌐 Live Website →</strong>
+  <a href="https://website-rdff2p95w-piyushs-projects-1495f171.vercel.app">
+    <img src="https://img.shields.io/badge/Live-Website-8B5CF6?style=for-the-badge&logo=vercel" alt="Live Website">
   </a>
 </p>
 
