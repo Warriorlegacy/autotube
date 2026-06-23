@@ -28,7 +28,7 @@ def test_build_video_body_private():
 
 
 @pytest.mark.asyncio
-async def test_upload_video_with_quota():
+async def test_upload_video_with_quota(tmp_path):
     from modules.metadata_gen import VideoMetadata
 
     metadata = VideoMetadata(
@@ -38,6 +38,11 @@ async def test_upload_video_with_quota():
         privacy_status="private",
     )
 
+    video_path = tmp_path / "test.mp4"
+    video_path.write_bytes(b"fake video content")
+    thumb_path = tmp_path / "test.jpg"
+    thumb_path.write_bytes(b"fake thumb")
+
     mock_youtube = MagicMock()
     mock_request = MagicMock()
     mock_request.next_chunk.return_value = (None, {"id": "test-video-id"})
@@ -45,9 +50,10 @@ async def test_upload_video_with_quota():
 
     with patch("modules.uploader.check_quota_available", return_value=True):
         with patch("modules.uploader.record_api_usage"):
-            with patch("pathlib.Path.exists", return_value=False):
-                video_id = upload_video(mock_youtube, "test.mp4", "test.jpg", metadata)
-                assert video_id == "test-video-id"
+            video_id = upload_video(
+                mock_youtube, str(video_path), str(thumb_path), metadata
+            )
+            assert video_id == "test-video-id"
 
 
 @pytest.mark.asyncio

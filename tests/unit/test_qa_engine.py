@@ -26,7 +26,7 @@ def test_qa_blocks_blacklisted_keyword(test_metadata, tmp_valid_video, tmp_thumb
 
 
 def test_qa_passes_valid_package(tmp_valid_video, tmp_thumbnail, test_metadata):
-    config = QAConfig()
+    config = QAConfig(min_duration_seconds=1, min_file_size_mb=0.001, title_min_chars=1)
     result = run_qa(tmp_valid_video, tmp_thumbnail, test_metadata, config)
     assert result.passed
     assert len(result.issues) == 0
@@ -54,7 +54,7 @@ def test_qa_returns_qa_result_type(tmp_valid_video, tmp_thumbnail, test_metadata
 
 
 def test_qa_warns_on_missing_ai_disclosure(tmp_valid_video, tmp_thumbnail):
-    config = QAConfig()
+    config = QAConfig(min_duration_seconds=1, min_file_size_mb=0.001, title_min_chars=1)
     from modules.metadata_gen import VideoMetadata
 
     metadata = VideoMetadata(

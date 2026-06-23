@@ -66,13 +66,15 @@ def run_qa(
         issues.extend(_check_thumbnail_dimensions(thumbnail_path, config))
 
     issues.extend(_check_metadata_lengths(metadata, config))
-    issues.extend(_check_blacklisted_keywords(metadata, config))
 
-    if (
-        "AI disclosure" not in metadata.description
-        and "artificial intelligence" not in metadata.description.lower()
-    ):
-        warnings.append("AI disclosure not found in description")
+    if metadata is not None:
+        issues.extend(_check_blacklisted_keywords(metadata, config))
+
+        if (
+            "AI disclosure" not in metadata.description
+            and "artificial intelligence" not in metadata.description.lower()
+        ):
+            warnings.append("AI disclosure not found in description")
 
     video_duration = _get_duration(video_path)
     file_size_mb = _get_file_size_mb(video_path)
@@ -196,8 +198,13 @@ def _check_thumbnail_dimensions(thumbnail_path: str, config: QAConfig) -> list[s
         return ["Could not check thumbnail dimensions"]
 
 
-def _check_metadata_lengths(metadata: VideoMetadata, config: QAConfig) -> list[str]:
+def _check_metadata_lengths(
+    metadata: VideoMetadata | None, config: QAConfig
+) -> list[str]:
     issues = []
+    if metadata is None:
+        issues.append("Metadata is required for QA")
+        return issues
     if len(metadata.title) > config.title_max_chars:
         issues.append(
             f"Title too long: {len(metadata.title)} chars (max {config.title_max_chars})"

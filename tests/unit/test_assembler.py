@@ -1,5 +1,4 @@
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -12,19 +11,21 @@ def test_srt_time_format():
 
 
 def test_generate_srt_creates_file(test_script, tmp_path):
-    with patch("modules.assembler.Path.mkdir"):
-        srt_path = _generate_srt(test_script)
-        assert Path(srt_path).exists()
-        content = Path(srt_path).read_text(encoding="utf-8")
-        assert "--> " in content
-        assert "Have you ever wondered" in content or "black hole" in content.lower()
+    output_dir = Path("./output/media")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    srt_path = _generate_srt(test_script)
+    assert Path(srt_path).exists()
+    content = Path(srt_path).read_text(encoding="utf-8")
+    assert "--> " in content
+    assert "Have you ever wondered" in content or "black hole" in content.lower()
 
 
 def test_generate_srt_structure(test_script, tmp_path):
-    with patch("modules.assembler.Path.mkdir"):
-        srt_path = _generate_srt(test_script)
-        content = Path(srt_path).read_text(encoding="utf-8")
-        lines = content.strip().split("\n")
-        assert len(lines) > 3
-        assert lines[0].isdigit()
-        assert "--> " in lines[1]
+    output_dir = Path("./output/media")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    srt_path = _generate_srt(test_script)
+    content = Path(srt_path).read_text(encoding="utf-8")
+    lines = content.strip().split("\n")
+    assert len(lines) > 3
+    assert lines[0].isdigit()
+    assert "--> " in lines[1]

@@ -18,7 +18,7 @@ ai:
   fallback_providers:
     - "groq"
   gemini_model: "gemini-2.0-flash"
-  groq_model: "llama-3.1-70b-versatile"
+  groq_model: "llama-3.3-70b-versatile"
   temperature: 0.7
   max_output_tokens: 2048
 

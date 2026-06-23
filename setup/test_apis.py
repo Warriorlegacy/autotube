@@ -37,7 +37,7 @@ def test_groq() -> bool:
             return False
         client = Groq(api_key=api_key)
         response = client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "user", "content": "Say 'Hello, AutoTube!' and nothing else."}
             ],

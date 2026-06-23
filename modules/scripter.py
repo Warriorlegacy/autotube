@@ -153,7 +153,7 @@ def _call_groq(prompt: str) -> dict:
         api_key = get_api_key("GROQ_API_KEY")
     client = Groq(api_key=api_key)
     response = client.chat.completions.create(
-        model="llama-3.1-70b-versatile",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"},
         temperature=0.7,

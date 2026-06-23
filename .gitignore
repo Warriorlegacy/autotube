@@ -55,6 +55,10 @@ coverage/
 dist/
 build/
 
+# OAuth credentials
+credentials.json
+token.json
+
 # YouTube specific
 *.mp4
 *.mp3
@@ -75,6 +79,15 @@ build/
 *.backup
 *.bak
 backup/
+
+# AutoTube Python output
+output/
+output/logs/
+data/backups/
+
+# Python virtual env
+.venv/
+venv/
 
 # Cache
 .cache/
