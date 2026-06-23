@@ -1,0 +1,62 @@
+name: AutoTube Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Python Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Seed Test Font
+        run: |
+          mkdir -p assets/fonts
+          python setup/download_font.py
+
+      - name: Run Unit Tests
+        run: python -m pytest tests/unit/ -v --timeout=30
+        env:
+          GEMINI_API_KEY: test
+          GROQ_API_KEY: test
+          PEXELS_API_KEY: test
+          PIXABAY_API_KEY: test
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Linting Tools
+        run: pip install ruff
+
+      - name: Run Ruff Linter
+        run: ruff check modules/ utils/ pipeline_runner.py setup/ --ignore=E501
