@@ -1,5 +1,11 @@
 # YouTube Automation Agent
 
+<p align="center">
+  <a href="https://website-4n305epj6-piyushs-projects-1495f171.vercel.app">
+    <strong>🌐 Live Website →</strong>
+  </a>
+</p>
+
 ## What's New in v2.0
 
 - **Model upgrades across the board** — GPT-5.5 / GPT-5.5 Instant replace GPT-4-turbo, GPT Image 2 replaces DALL-E 3, Gemini 3.5 Flash/Pro replace Gemini 1.x, ElevenLabs Eleven v3 replaces v1, Wan 2.7 replaces Stable Video Diffusion
